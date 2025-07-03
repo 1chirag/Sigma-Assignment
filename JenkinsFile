@@ -1,62 +1,76 @@
 pipeline {
     agent any
 
+    environment {
+        KUBECTL = './kubectl'
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
                 git credentialsId: 'github-creds', url: 'https://github.com/1chirag/Sigma-Assignment.git', branch: 'main'
             }
         }
+
         stage('Install Kubectl') {
             steps {
                 sh '''
-                    echo "Installing kubectl..."
+                    echo "Installing kubectl locally..."
                     curl -LO "https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl"
                     chmod +x kubectl
-                    mv kubectl /usr/local/bin/kubectl || sudo mv kubectl /usr/local/bin/kubectl
-                    kubectl version --client
-        '''
-      }
-    }
+                    ./kubectl version --client
+                '''
+            }
+        }
 
         stage('Create Secrets') {
             steps {
-                // Create postgres secret
                 sh '''
-                    kubectl delete secret postgres-secret --ignore-not-found
-                    kubectl create secret generic postgres-secret \
+                    ${KUBECTL} delete secret postgres-secret --ignore-not-found
+                    ${KUBECTL} create secret generic postgres-secret \
                       --from-literal=POSTGRES_DB=wordpress \
                       --from-literal=POSTGRES_USER=wpuser \
                       --from-literal=POSTGRES_PASSWORD=wppassword
-                '''
 
-                // Create pgadmin secret
-                sh '''
-                    kubectl delete secret pgadmin-secret --ignore-not-found
-                    kubectl create secret generic pgadmin-secret \
-                    --from-literal=PGADMIN_DEFAULT_PASSWORD=admin123
+                    ${KUBECTL} delete secret pgadmin-secret --ignore-not-found
+                    ${KUBECTL} create secret generic pgadmin-secret \
+                      --from-literal=PGADMIN_DEFAULT_PASSWORD=admin123
                 '''
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f kubernetes/postgres-pvc.yaml'
-                sh 'kubectl apply -f kubernetes/postgres-deployment.yaml'
-                sh 'kubectl apply -f kubernetes/postgres-service.yaml'
+                sh '''
+                    ${KUBECTL} apply -f kubernetes/postgres/postgres-pvc.yaml
+                    ${KUBECTL} apply -f kubernetes/postgres/postgres-deployment.yaml
+                    ${KUBECTL} apply -f kubernetes/postgres/postgres-service.yaml
 
-                sh 'kubectl apply -f kubernetes/pgadmin-pvc.yaml'
-                sh 'kubectl apply -f kubernetes/pgadmin-configmap.yaml'
-                sh 'kubectl apply -f kubernetes/pgadmin-deployment.yaml'
-                sh 'kubectl apply -f kubernetes/pgadmin-service.yaml'
-                sh 'kubectl apply -f kubernetes/pgadmin-ingress.yaml'
+                    ${KUBECTL} apply -f kubernetes/pgadmin/pgadmin-pvc.yaml
+                    ${KUBECTL} apply -f kubernetes/pgadmin/pgadmin-configmap.yaml
+                    ${KUBECTL} apply -f kubernetes/pgadmin/pgadmin-deployment.yaml
+                    ${KUBECTL} apply -f kubernetes/pgadmin/pgadmin-service.yaml
+                    ${KUBECTL} apply -f kubernetes/pgadmin/pgadmin-ingress.yaml
 
-                sh 'kubectl apply -f kubernetes/wordpress-pvc.yaml'
-                sh 'kubectl apply -f kubernetes/wordpress-deployment.yaml'
-                sh 'kubectl apply -f kubernetes/wordpress-service.yaml'
-                sh 'kubectl apply -f kubernetes/wordpress-hpa.yaml' 
-                sh 'kubectl apply -f kubernetes/wordpress-ingress.yaml'
+                    ${KUBECTL} apply -f kubernetes/wordpress/wordpress-pvc.yaml
+                    ${KUBECTL} apply -f kubernetes/wordpress/wordpress-deployment.yaml
+                    ${KUBECTL} apply -f kubernetes/wordpress/wordpress-service.yaml
+                    ${KUBECTL} apply -f kubernetes/wordpress/wordpress-hpa.yaml
+                    ${KUBECTL} apply -f kubernetes/wordpress/wordpress-ingress.yaml
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully.'
+        }
+        failure {
+            echo '❌ Pipeline failed.'
+        }
+        cleanup {
+            sh 'rm -f kubectl'
         }
     }
 }

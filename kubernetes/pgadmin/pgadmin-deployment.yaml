@@ -64,7 +64,7 @@ spec:
               name: pgadmin-secret
               key: PGADMIN_DEFAULT_PASSWORD
         - name: SCRIPT_NAME
-          value: /pgadmin   # 👈 This line is the fix
+          value: /pgadmin
         volumeMounts:
         - name: pgadmin-storage
           mountPath: /var/lib/pgadmin

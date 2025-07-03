@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git credentialsId: 'github-creds', url: 'https://github.com/1chirag/Sigma-Assignment.git', branch: 'main'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f kubernetes/postgres-secret.yaml'
+                sh 'kubectl apply -f kubernetes/postgres-deployment.yaml'
+                sh 'kubectl apply -f kubernetes/postgres-service.yaml'
+
+                sh 'kubectl apply -f kubernetes/pgadmin-configmap.yaml'
+                sh 'kubectl apply -f kubernetes/pgadmin-secret.yaml'
+                sh 'kubectl apply -f kubernetes/pgadmin-deployment.yaml'
+                sh 'kubectl apply -f kubernetes/pgadmin-service.yaml'
+                sh 'kubectl apply -f kubernetes/pgadmin-ingress.yaml'
+
+                sh 'kubectl apply -f kubernetes/wordpress-pvc.yaml'
+                sh 'kubectl apply -f kubernetes/wordpress-deployment.yaml'
+                sh 'kubectl apply -f kubernetes/wordpress-service.yaml'
+                sh 'kubectl apply -f kubernetes/wordpress-ingress.yaml'
+            }
+        }
+    }
+}

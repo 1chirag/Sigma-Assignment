@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:lts
+        ports:
+        - containerPort: 8080    # Web UI
+        - containerPort: 50000   # Agent connection
+        env:
+        - name: JENKINS_OPTS
+          value: --prefix=/jenkins
+        volumeMounts:
+        - name: jenkins-vol
+          mountPath: /var/jenkins_home
+      volumes:
+      - name: jenkins-vol
+        persistentVolumeClaim:
+          claimName: jenkins-pvc

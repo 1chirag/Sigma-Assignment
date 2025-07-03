@@ -23,6 +23,7 @@ pipeline {
                 sh 'kubectl apply -f kubernetes/wordpress-pvc.yaml'
                 sh 'kubectl apply -f kubernetes/wordpress-deployment.yaml'
                 sh 'kubectl apply -f kubernetes/wordpress-service.yaml'
+                sh 'kubectl apply -f kubernetes/wordpress-hpa.yaml' 
                 sh 'kubectl apply -f kubernetes/wordpress-ingress.yaml'
             }
         }

@@ -44,8 +44,9 @@ kubectl exec -it <pod-name> -- <command>
 ## ✅ 1. Project Structure
 ```
 Sigma-Assignment/
-├── jenkins/                 # Jenkins deployment files
+               # Jenkins deployment files
 ├── kubernetes/
+|   ├── jenkins/
 │   ├── pgadmin/
 │   ├── postgres/
 │   └── wordpress/

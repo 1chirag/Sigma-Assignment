@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        KUBECTL = './kubectl'
+        KUBECTL = "./kubectl"
     }
 
     stages {
@@ -15,27 +15,32 @@ pipeline {
         stage('Install Kubectl') {
             steps {
                 sh '''
-                    echo "Installing kubectl locally..."
-                    curl -LO "https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl"
+                    echo Installing kubectl locally...
+                    curl -LO https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl
                     chmod +x kubectl
-                    ./kubectl version --client
+                    ${KUBECTL} version --client
                 '''
             }
         }
 
         stage('Create Secrets') {
             steps {
-                sh '''
-                    ${KUBECTL} delete secret postgres-secret --ignore-not-found
-                    ${KUBECTL} create secret generic postgres-secret \
-                      --from-literal=POSTGRES_DB=wordpress \
-                      --from-literal=POSTGRES_USER=wpuser \
-                      --from-literal=POSTGRES_PASSWORD=wppassword
+                withCredentials([
+                    usernamePassword(credentialsId: 'postgres-credentials', usernameVariable: 'PGUSER', passwordVariable: 'PGPASS'),
+                    string(credentialsId: 'pgadmin-password', variable: 'PGADMIN_PASS')
+                ]) {
+                    sh '''
+                        ${KUBECTL} delete secret postgres-secret --ignore-not-found
+                        ${KUBECTL} create secret generic postgres-secret \
+                          --from-literal=POSTGRES_DB=wordpress \
+                          --from-literal=POSTGRES_USER=$PGUSER \
+                          --from-literal=POSTGRES_PASSWORD=$PGPASS
 
-                    ${KUBECTL} delete secret pgadmin-secret --ignore-not-found
-                    ${KUBECTL} create secret generic pgadmin-secret \
-                      --from-literal=PGADMIN_DEFAULT_PASSWORD=admin123
-                '''
+                        ${KUBECTL} delete secret pgadmin-secret --ignore-not-found
+                        ${KUBECTL} create secret generic pgadmin-secret \
+                          --from-literal=PGADMIN_DEFAULT_PASSWORD=$PGADMIN_PASS
+                    '''
+                }
             }
         }
 
@@ -65,11 +70,10 @@ pipeline {
     post {
         success {
             echo '✅ Pipeline completed successfully.'
+            sh 'rm -f kubectl'
         }
         failure {
             echo '❌ Pipeline failed.'
-        }
-        cleanup {
             sh 'rm -f kubectl'
         }
     }

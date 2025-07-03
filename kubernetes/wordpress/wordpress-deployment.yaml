@@ -27,8 +27,11 @@ spec:
             secretKeyRef:
               name: postgres-secret
               key: POSTGRES_USER
-        - name: WORDPRESS_DB_PASSWORD_FILE           # changed here
-          value: /run/secrets/postgres/POSTGRES_PASSWORD
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
         resources:
           requests:
             cpu: 100m
@@ -39,13 +42,7 @@ spec:
         volumeMounts:
         - name: wordpress-storage
           mountPath: /var/www/html
-        - name: postgres-secret-volume                  # added secret mount
-          mountPath: /run/secrets/postgres
-          readOnly: true
       volumes:
       - name: wordpress-storage
         persistentVolumeClaim:
           claimName: wordpress-pvc
-      - name: postgres-secret-volume
-        secret:
-          secretName: postgres-secret

@@ -8,14 +8,34 @@ pipeline {
             }
         }
 
+        stage('Create Secrets') {
+            steps {
+                // Create postgres secret
+                sh '''
+                    kubectl delete secret postgres-secret --ignore-not-found
+                    kubectl create secret generic postgres-secret \
+                      --from-literal=POSTGRES_DB=wordpress \
+                      --from-literal=POSTGRES_USER=wpuser \
+                      --from-literal=POSTGRES_PASSWORD=wppassword
+                '''
+
+                // Create pgadmin secret
+                sh '''
+                    kubectl delete secret pgadmin-secret --ignore-not-found
+                    kubectl create secret generic pgadmin-secret \
+                    --from-literal=PGADMIN_DEFAULT_PASSWORD=admin123
+                '''
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f kubernetes/postgres-secret.yaml'
+                sh 'kubectl apply -f kubernetes/postgres-pvc.yaml'
                 sh 'kubectl apply -f kubernetes/postgres-deployment.yaml'
                 sh 'kubectl apply -f kubernetes/postgres-service.yaml'
 
+                sh 'kubectl apply -f kubernetes/pgadmin-pvc.yaml'
                 sh 'kubectl apply -f kubernetes/pgadmin-configmap.yaml'
-                sh 'kubectl apply -f kubernetes/pgadmin-secret.yaml'
                 sh 'kubectl apply -f kubernetes/pgadmin-deployment.yaml'
                 sh 'kubectl apply -f kubernetes/pgadmin-service.yaml'
                 sh 'kubectl apply -f kubernetes/pgadmin-ingress.yaml'
